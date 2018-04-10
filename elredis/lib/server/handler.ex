@@ -1,10 +1,11 @@
 defmodule ElRedis.Handler do
   @moduledoc """
-  A TCP Protocol handler which will handle incoming conenctions and parse them using the ELRedis.RESPParser
-  Refer to Ranch Erlang Docs:https://ninenines.eu/docs/en/ranch/1.4/guide/protocols/
+  A TCP Protocol handler which will handle incoming conenctions and parse them using the ElRedis.Resp
   """
   use GenServer
   require Logger
+
+  alias ElRedis.Resp
 
   @doc """
   Starts the handler. Implements the ranch_protocol behaviour
@@ -15,8 +16,7 @@ defmodule ElRedis.Handler do
   end
 
   @doc """
-  Initiates the handler. And Enters the receive loop. 
-  Note: {active :once} used here so that client cannot spam messages
+  Initiates the handler. And Enters the receive loop.
   """
   def init(ref, socket, transport, _opts) do
     client = get_client(socket)
