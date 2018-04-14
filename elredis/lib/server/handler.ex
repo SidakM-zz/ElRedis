@@ -44,6 +44,12 @@ defmodule ElRedis.Handler do
       ) do
     Logger.info("Received new message: #{inspect(message)} from #{client}")
     # Reply
+    case Resp.parse(message) do
+      {:ok, commands, ""} ->
+        Logger.info("Running #{inspect(commands)} from #{client}")
+      {_, _, _} ->
+        Logger.info("unparseable sad")
+    end
     transport.send(socket, message)
     {:noreply, state}
   end

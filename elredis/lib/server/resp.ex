@@ -1,12 +1,11 @@
 defmodule ElRedis.Resp do
     @moduledoc """
     This module allows for the encoding and decoding functions
-    to work with RESP (REdis Binary Protocol). Most of the parsing code in this module
+    to work with RESP (REdis Binary Protocol). Much of the parsing code in this module
     is from: Redix https://hexdocs.pm/redix/Redix.html [MIT License] which is a redis client
     """
 
     @crlf "\r\n"
-    def parse(data)
 
     def parse("+" <> rest), do: parse_simple_string(rest)
     def parse(":" <> rest), do: parse_integer(rest)
