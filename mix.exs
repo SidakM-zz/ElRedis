@@ -12,6 +12,7 @@ defmodule ElRedis.MixProject do
   end
 
   # Run "mix help compile.app" to learn about applications.
+  # Start DIstyributed Application With: elixir --name host1@127.0.0.1 --cookie cookie -S mix
   def application do
     [
       extra_applications: [:logger],
