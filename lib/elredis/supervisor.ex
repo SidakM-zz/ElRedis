@@ -14,7 +14,8 @@ defmodule ElRedis.Supervisor do
   1) KeySpaceSupervisor: DynamicSupervisor that supervises K/V nodes
   2) Registry: Used as the named registry for the K/V pairs
   3) NodeDiscovery: Attempts to check and connect to other nodes in the cluster
-  4) TCP Server: If enabled in config
+  4) NodeManager: Communicates with the KeySpace for this node
+  5) TCP Server: If enabled in config
   """
   def init(:ok) do
     Logger.info("Starting ELRedis Supervisor")
@@ -22,11 +23,13 @@ defmodule ElRedis.Supervisor do
     children = [
       supervisor(ElRedis.KeySpaceSupervisor, []),
       supervisor(Registry, [:unique, :key_registry]),
-      worker(ElRedis.NodeDiscovery, [])
+      worker(ElRedis.NodeDiscovery, []),
+      worker(ElRedis.NodeManager, [])
     ]
-
+    require IEx
+    IEx.pry
     # start tcp server if indicated in the configuration
-    if (Application.get_env(:elredis, :accept_client_connections)) do
+    if (Application.get_env(:elredis, :accept_client_connections) == "true") do
       children = children ++ [{ElRedis.TcpServer, []}]
     end
     Supervisor.init(children, strategy: :one_for_one)
