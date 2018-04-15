@@ -26,8 +26,6 @@ defmodule ElRedis.Supervisor do
       worker(ElRedis.NodeDiscovery, []),
       worker(ElRedis.NodeManager, [])
     ]
-    require IEx
-    IEx.pry
     # start tcp server if indicated in the configuration
     if (Application.get_env(:elredis, :accept_client_connections) == "true") do
       children = children ++ [{ElRedis.TcpServer, []}]

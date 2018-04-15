@@ -10,7 +10,7 @@ defmodule ElRedis.StringValue do
   end
 
   @doc """
-  Registers the key in the Registry supervisor.
+  Returns the tuple to pass into start_link/1 to register the key in the Registry
   """
   defp via_tuple(key) do
     {:via, Registry, {:key_registry, key}}

@@ -22,8 +22,6 @@ defmodule ElRedis.NodeDiscovery do
   Pings Cluster Nodes
   """
   def check_cluster_nodes do
-    require IEx
-    IEx.pry
     cluster_nodes
       |> Enum.map(&(String.to_atom &1))
       |> Enum.map(&({&1, Node.connect(&1) == true}))

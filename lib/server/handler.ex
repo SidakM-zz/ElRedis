@@ -6,6 +6,7 @@ defmodule ElRedis.Handler do
   require Logger
 
   alias ElRedis.Resp
+  alias ElRedis.Command
 
   @doc """
   Starts the handler. Implements the ranch_protocol behaviour
@@ -44,13 +45,9 @@ defmodule ElRedis.Handler do
       ) do
     Logger.info("Received new message: #{inspect(message)} from #{client}")
     # Reply
-    case Resp.parse(message) do
-      {:ok, commands, ""} ->
-        Logger.info("Running #{inspect(commands)} from #{client}")
-      {_, _, _} ->
-        Logger.info("unparseable sad")
-    end
-    transport.send(socket, message)
+    response = parse_message(message) |>
+                Command.handle_command
+    transport.send(socket, "+OK\r\n")
     {:noreply, state}
   end
 
@@ -70,4 +67,19 @@ defmodule ElRedis.Handler do
 
     "#{address}:#{port}"
   end
+
+  defp parse_message(message, command_list \\ []) do
+    case Resp.parse(message) do
+      {:ok, command, ""} ->
+        command
+      {_, _, _} ->
+        Logger.info("unparseable sad")
+    end
+  end
+
+  defp run_command(command) do
+    require IEx
+    IEx.pry
+  end
+
 end
