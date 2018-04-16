@@ -45,9 +45,10 @@ defmodule ElRedis.Handler do
       ) do
     Logger.info("Received new message: #{inspect(message)} from #{client}")
     # Reply
-    response = parse_message(message) |>
-                Command.handle_command
-    transport.send(socket, "+OK\r\n")
+    response = parse_message(message)
+                |> Command.handle_command
+                |> encode_message
+    transport.send(socket, response)
     {:noreply, state}
   end
 
@@ -77,9 +78,7 @@ defmodule ElRedis.Handler do
     end
   end
 
-  defp run_command(command) do
-    require IEx
-    IEx.pry
+  defp encode_message(message) do
+    Resp.encode(message)
   end
-
 end

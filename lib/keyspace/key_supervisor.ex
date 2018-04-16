@@ -4,6 +4,7 @@ defmodule ElRedis.KeySpaceSupervisor do
   """
   use DynamicSupervisor
   require Logger
+  alias ElRedis.KeyValue
 
   def start_link do
     DynamicSupervisor.start_link(__MODULE__, :ok, name: __MODULE__)
@@ -12,5 +13,13 @@ defmodule ElRedis.KeySpaceSupervisor do
   def init(:ok) do
     Logger.info("Starting KeySpace Supervisor")
     DynamicSupervisor.init(strategy: :one_for_one)
+  end
+
+  @doc """
+  Adds a new KeyValue node to the keyspace.
+  """
+  def add_node(key) do
+    child_spec = {KeyValue, [key]}
+    DynamicSupervisor.start_child(__MODULE__, child_spec)
   end
 end

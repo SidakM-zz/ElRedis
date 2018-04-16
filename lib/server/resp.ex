@@ -6,6 +6,9 @@ defmodule ElRedis.Resp do
     """
 
     @crlf "\r\n"
+    @simple_string "+"
+    @bulk_string "$"
+    @error_string "-"
 
     def parse("+" <> rest), do: parse_simple_string(rest)
     def parse(":" <> rest), do: parse_integer(rest)
@@ -120,4 +123,36 @@ defmodule ElRedis.Resp do
 
     defp resolve_cont({:continuation, cont}, ok),
         do: {:continuation, fn new_data -> resolve_cont(cont.(new_data), ok) end}
+
+    def encode(["Error", error_type, error_message] = message) do
+        @error_string <> error_type <> " " <> error_message <> @crlf
+    end
+
+    @doc """
+    If a single binary-safe message, encode as a bulk string
+    """
+    def encode([messsage]) do
+        @bulk_string <> (String.length(messsage) |> Integer.to_string) <> @crlf <> messsage <> @crlf
+    end
+
+    @doc """
+    If an array encode as RESP array
+    """
+    def encode(items) when is_list(items) do
+        {packed, size} =
+        Enum.map_reduce(items, 0, fn item, acc ->
+            string = to_string(item)
+            packed_item = [?$, Integer.to_string(byte_size(string)), @crlf, string, @crlf]
+            {packed_item, acc + 1}
+        end)
+    
+        [?*, Integer.to_string(size), @crlf, packed]
+    end
+
+    @doc """
+    Encode as a simple RESP string
+    """
+    def encode(message) do
+        @simple_string <> message <> @crlf
+    end
 end
