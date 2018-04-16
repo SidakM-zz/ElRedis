@@ -4,6 +4,7 @@ defmodule ElRedis.KeyValue do
   """
   use GenServer
   alias ElRedis.KeySpaceSupervisor
+  @null ""
 
   def start_link([key]) do
     name = via_tuple(key)
@@ -15,6 +16,27 @@ defmodule ElRedis.KeyValue do
   """
   defp via_tuple(key) do
     {:via, Registry, {:key_registry, key}}
+  end
+
+  @doc """
+  Command Logic
+  """
+
+  def command(key, ["SETNX", key, value] = command) do
+    if Registry.lookup(:key_registry, key) == [] do
+      KeySpaceSupervisor.add_node(key)
+      GenServer.call(via_tuple(key), ["SET", key, value])
+    else
+      @null
+    end
+  end
+
+  def command(key, ["GET", key] = command) do
+    if Registry.lookup(:key_registry, key) != [] do
+      GenServer.call(via_tuple(key), command)
+    else
+      @null
+    end
   end
 
   def command(key, command) do

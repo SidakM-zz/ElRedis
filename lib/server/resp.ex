@@ -9,6 +9,7 @@ defmodule ElRedis.Resp do
     @simple_string "+"
     @bulk_string "$"
     @error_string "-"
+    @null_string "$-1\r\n"
 
     def parse("+" <> rest), do: parse_simple_string(rest)
     def parse(":" <> rest), do: parse_integer(rest)
@@ -133,6 +134,13 @@ defmodule ElRedis.Resp do
     """
     def encode([messsage]) do
         @bulk_string <> (String.length(messsage) |> Integer.to_string) <> @crlf <> messsage <> @crlf
+    end
+
+    @doc """
+    A Null Bulk reply
+    """
+    def encode("") do
+        @null_string
     end
 
     @doc """
