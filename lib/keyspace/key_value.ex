@@ -2,9 +2,11 @@ defmodule ElRedis.KeyValue do
   @moduledoc """
   A module representing a K/V pair
   """
-  use GenServer
+  use GenServer, restart: :temporary
   alias ElRedis.KeySpaceSupervisor
   @null ""
+  @zero 0
+  @one 1
 
   def start_link([key]) do
     name = via_tuple(key)
@@ -26,8 +28,10 @@ defmodule ElRedis.KeyValue do
     if Registry.lookup(:key_registry, key) == [] do
       KeySpaceSupervisor.add_node(key)
       GenServer.call(via_tuple(key), ["SET", key, value])
+      # returns 1 since key was set: RESP protocol
+      @one
     else
-      @null
+      @zero
     end
   end
 
@@ -36,6 +40,14 @@ defmodule ElRedis.KeyValue do
       GenServer.call(via_tuple(key), command)
     else
       @null
+    end
+  end
+
+  def command(key, ["DEL", key] = command) do
+    if Registry.lookup(:key_registry, key) != [] do
+      GenServer.call(via_tuple(key), command)
+    else
+      @zero
     end
   end
 
@@ -52,5 +64,12 @@ defmodule ElRedis.KeyValue do
 
   def handle_call(["SET", key, new_value], _from, value) do
     {:reply, "OK", new_value}
+  end
+
+  @doc """
+  Returns 1 as reply since 1 key was deleted
+  """
+  def handle_call(["DEL", key], _from, value) do
+    {:stop, :normal, @one,  value}
   end
 end

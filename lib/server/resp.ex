@@ -125,6 +125,9 @@ defmodule ElRedis.Resp do
     defp resolve_cont({:continuation, cont}, ok),
         do: {:continuation, fn new_data -> resolve_cont(cont.(new_data), ok) end}
 
+    @doc """
+    If it is an error message
+    """
     def encode(["Error", error_type, error_message] = message) do
         @error_string <> error_type <> " " <> error_message <> @crlf
     end
@@ -157,6 +160,12 @@ defmodule ElRedis.Resp do
         [?*, Integer.to_string(size), @crlf, packed]
     end
 
+    @doc """
+    If the message is an Integer
+    """
+    def encode(message) when is_integer(message) do
+        ":#{message}" <> @crlf
+    end
     @doc """
     Encode as a simple RESP string
     """

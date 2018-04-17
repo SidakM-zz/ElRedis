@@ -13,4 +13,8 @@ defmodule ElRedis.Command do
     NodeManager.queue_command(key, command) 
   end
 
+  def handle_command(["DEL", key] = command) do
+    NodeManager.queue_command(key, command) 
+  end
+
 end
