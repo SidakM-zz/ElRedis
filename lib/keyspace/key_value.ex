@@ -7,6 +7,7 @@ defmodule ElRedis.KeyValue do
   @null ""
   @zero 0
   @one 1
+  @ok "OK"
 
   def start_link([key]) do
     name = via_tuple(key)
@@ -16,7 +17,7 @@ defmodule ElRedis.KeyValue do
   @doc """
   Returns the tuple to pass into start_link/1 to register the key in the Registry
   """
-  defp via_tuple(key) do
+  def via_tuple(key) do
     {:via, Registry, {:key_registry, key}}
   end
 
@@ -35,6 +36,18 @@ defmodule ElRedis.KeyValue do
     end
   end
 
+  def command(key, ["SETEX", key, time, value] = command) do
+    case Registry.lookup(:key_registry, key) do
+      [] ->
+        KeySpaceSupervisor.add_node(key)
+        command(key, command)
+      [{pid, _}] ->
+        GenServer.call(pid, ["SET", key, value])
+        Process.send_after(pid, ["DEL", key], time * 1000)
+    end
+    @ok
+  end
+
   def command(key, ["GET", key] = command) do
     if Registry.lookup(:key_registry, key) != [] do
       GenServer.call(via_tuple(key), command)
@@ -48,6 +61,14 @@ defmodule ElRedis.KeyValue do
       GenServer.call(via_tuple(key), command)
     else
       @zero
+    end
+  end
+
+  def command(key, ["EXISTS", key] = command) do
+    if Registry.lookup(:key_registry, key) == [] do
+      @zero
+    else
+      @one
     end
   end
 
@@ -72,4 +93,9 @@ defmodule ElRedis.KeyValue do
   def handle_call(["DEL", key], _from, value) do
     {:stop, :normal, @one,  value}
   end
+
+  def handle_info(["DEL", key], value) do
+    {:stop, :normal, value}
+  end
+
 end

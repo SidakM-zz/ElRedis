@@ -52,4 +52,63 @@ defmodule ElRedisTest do
     {:ok, msg} = :gen_tcp.recv(state[:socket], 0)
     assert msg == ':0\r\n'
   end
+
+  test "EXISTS key, returns one if key is set", state do
+    :ok = :gen_tcp.send(state[:socket], "*3\r\n$3\r\nSET\r\n$12\r\nexists_key_1\r\n$5\r\nvalue\r\n")
+    {:ok, msg} = :gen_tcp.recv(state[:socket], 0)
+    assert msg == '+OK\r\n'
+    :ok = :gen_tcp.send(state[:socket], "*2\r\n$6\r\nEXISTS\r\n$12\r\nexists_key_1\r\n")
+    {:ok, msg} = :gen_tcp.recv(state[:socket], 0)
+    assert msg == ':1\r\n'
+  end 
+
+  test "EXISTS key, returns zero if key not set", state do
+    :ok = :gen_tcp.send(state[:socket], "*2\r\n$6\r\nEXISTS\r\n$12\r\nexists_key_2\r\n")
+    {:ok, msg} = :gen_tcp.recv(state[:socket], 0)
+    assert msg == ':0\r\n'
+  end
+
+  test "EXISTS key, deleted key does not exist", state do
+    :ok = :gen_tcp.send(state[:socket], "*3\r\n$3\r\nSET\r\n$12\r\nexists_key_1\r\n$5\r\nvalue\r\n")
+    {:ok, msg} = :gen_tcp.recv(state[:socket], 0)
+    assert msg == '+OK\r\n'
+    :ok = :gen_tcp.send(state[:socket], "*2\r\n$3\r\nDEL\r\n$12\r\nexists_key_1\r\n")
+    {:ok, msg} = :gen_tcp.recv(state[:socket], 0)
+    assert msg == ':1\r\n'
+    :ok = :gen_tcp.send(state[:socket], "*2\r\n$6\r\nEXISTS\r\n$12\r\nexists_key_3\r\n")
+    {:ok, msg} = :gen_tcp.recv(state[:socket], 0)
+    assert msg == ':0\r\n'
+  end
+
+  test "SETEX key value time, key expires after given time", state do
+    :ok = :gen_tcp.send(state[:socket], "*4\r\n$5\r\nSETEX\r\n$22\r\nsetex_key_time_value_1\r\n$1\r\n5\r\n$5\r\nvalue\r\n")
+    {:ok, msg} = :gen_tcp.recv(state[:socket], 0)
+    assert msg == '+OK\r\n'
+    # it is assumed the following command will take less than 5 seconds (if it doesn't than something is probably wrong)
+    :ok = :gen_tcp.send(state[:socket], "*2\r\n$3\r\nGET\r\n$22\r\nsetex_key_time_value_1\r\n")
+    {:ok, msg} = :gen_tcp.recv(state[:socket], 0)
+    assert msg == '$5\r\nvalue\r\n'
+    # wait for timeout to finish
+    :timer.sleep(5000);
+    :ok = :gen_tcp.send(state[:socket], "*2\r\n$6\r\nEXISTS\r\n$22\r\nsetex_key_time_value_1\r\n")
+    {:ok, msg} = :gen_tcp.recv(state[:socket], 0)
+    assert msg == ':0\r\n'
+  end
+
+  test "SETEX key value time, can set new value before key expires", state do
+    :ok = :gen_tcp.send(state[:socket], "*4\r\n$5\r\nSETEX\r\n$22\r\nsetex_key_time_value_2\r\n$1\r\n5\r\n$5\r\nvalue\r\n")
+    {:ok, msg} = :gen_tcp.recv(state[:socket], 0)
+    assert msg == '+OK\r\n'
+    :ok = :gen_tcp.send(state[:socket], "*3\r\n$3\r\nSET\r\n$22\r\nsetex_key_time_value_2\r\n$6\r\nvalue2\r\n")
+    {:ok, msg} = :gen_tcp.recv(state[:socket], 0)
+    assert msg == '+OK\r\n'
+    :ok = :gen_tcp.send(state[:socket], "*2\r\n$3\r\nGET\r\n$22\r\nsetex_key_time_value_2\r\n")
+    {:ok, msg} = :gen_tcp.recv(state[:socket], 0)
+    assert msg == '$6\r\nvalue2\r\n'
+    # wait for timeout to finish
+    :timer.sleep(5000);
+    :ok = :gen_tcp.send(state[:socket], "*2\r\n$6\r\nEXISTS\r\n$22\r\nsetex_key_time_value_1\r\n")
+    {:ok, msg} = :gen_tcp.recv(state[:socket], 0)
+    assert msg == ':0\r\n'
+  end
 end

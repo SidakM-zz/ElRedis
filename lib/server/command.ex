@@ -17,4 +17,13 @@ defmodule ElRedis.Command do
     NodeManager.queue_command(key, command) 
   end
 
+  def handle_command(["EXISTS", key] = command) do
+    NodeManager.queue_command(key, command) 
+  end
+
+  def handle_command(["SETEX", key, time, value] = command) do
+    time = String.to_integer(time)
+    command = ["SETEX", key, time, value]
+    NodeManager.queue_command(key, command) 
+  end
 end

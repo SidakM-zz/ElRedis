@@ -5,4 +5,3 @@ config :elredis,
   max_connections: 512,
   connection_backlog: 1024,
   accept_client_connections: System.get_env("ELREDIS_CLIENT_CONN") || "true"
-
