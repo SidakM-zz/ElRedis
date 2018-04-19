@@ -45,11 +45,12 @@ defmodule ElRedis.Handler do
       ) do
     Logger.info("Received new message: #{inspect(message)} from #{client}")
     # Reply
-    # require IEx
+    #require IEx
     # IEx.pry
     response = parse_message(message)
                 |> Command.handle_command
                 |> encode_message
+    # IEx.pry
     transport.send(socket, response)
     {:noreply, state}
   end

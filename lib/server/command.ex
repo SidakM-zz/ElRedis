@@ -26,4 +26,8 @@ defmodule ElRedis.Command do
     command = ["SETEX", key, time, value]
     NodeManager.queue_command(key, command) 
   end
+
+  def handle_command(["TTL", key] = command) do
+    NodeManager.queue_command(key, command) 
+  end
 end

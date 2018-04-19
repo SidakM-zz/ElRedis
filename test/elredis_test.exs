@@ -111,4 +111,29 @@ defmodule ElRedisTest do
     {:ok, msg} = :gen_tcp.recv(state[:socket], 0)
     assert msg == ':0\r\n'
   end
+
+  test "TTL key, returns -2 if key does not exist", state do
+    :ok = :gen_tcp.send(state[:socket], "*2\r\n$3\r\nTTL\r\n$9\r\nttl_key_1\r\n")
+    {:ok, msg} = :gen_tcp.recv(state[:socket], 0)
+    assert msg = ":-2\r\n"
+  end
+
+  test "TTL key, returns -1 if key exists but does not have a timer", state do
+    :ok = :gen_tcp.send(state[:socket], "*3\r\n$3\r\nSET\r\n$9\r\nttl_key_2\r\n$5\r\nvalue\r\n")
+    {:ok, msg} = :gen_tcp.recv(state[:socket], 0)
+    assert msg = "+OK\r\n"
+    :ok = :gen_tcp.send(state[:socket], "*2\r\n$3\r\nTTL\r\n$9\r\nttl_key_2\r\n")
+    {:ok, msg} = :gen_tcp.recv(state[:socket], 0)
+    assert msg = ":-1\r\n"
+  end
+
+  test "TTL key, returns time remaining when key and timer exists", state do
+    :ok = :gen_tcp.send(state[:socket], "*4\r\n$5\r\nSETEX\r\n$9\r\nttl_key_3\r\n$1\r\n5\r\n$5\r\nvalue\r\n")
+    {:ok, msg} = :gen_tcp.recv(state[:socket], 0)
+    assert msg = "+OK\r\n"
+    :ok = :gen_tcp.send(state[:socket], "*2\r\n$3\r\nTTL\r\n$9\r\nttl_key_3\r\n")
+    {:ok, msg} = :gen_tcp.recv(state[:socket], 0)
+    :timer.sleep(1000);
+    assert msg = ":4\r\n"
+  end
 end

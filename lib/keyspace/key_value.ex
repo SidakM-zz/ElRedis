@@ -25,6 +25,14 @@ defmodule ElRedis.KeyValue do
   Command Logic
   """
 
+  def command(key, ["TTL", key] = command) do
+    if Registry.lookup(:key_registry, key) == [] do
+      response = -2
+    else
+      GenServer.call(via_tuple(key), ["TTL", key])
+    end
+  end
+
   def command(key, ["SETNX", key, value] = command) do
     if Registry.lookup(:key_registry, key) == [] do
       KeySpaceSupervisor.add_node(key)
@@ -93,6 +101,16 @@ defmodule ElRedis.KeyValue do
     timer = Process.send_after(self(), ["DEL", key], time * 1000)
     state = Map.put(state, :timer, timer)
     {:reply, "OK", state}
+  end
+
+  def handle_call(["TTL", key], _from, state) do
+    if state[:timer] do
+      response = Process.read_timer(state[:timer]) / 1000
+          |> round
+    else
+      response = -1
+    end
+    {:reply, response, state}
   end
 
   @doc """
