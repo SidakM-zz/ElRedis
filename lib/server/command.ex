@@ -30,4 +30,19 @@ defmodule ElRedis.Command do
   def handle_command(["TTL", key] = command) do
     NodeManager.queue_command(key, command) 
   end
+
+  def handle_command(["APPEND", key, value] = command) do
+    NodeManager.queue_command(key, command) 
+  end
+
+  def handle_command(["INCRBY", key, value] = command) do
+    value = String.to_integer(value)
+    command = ["INCRBY", key, value]
+    NodeManager.queue_command(key, command) 
+  end
+
+  def handle_command(["INCR", key] = command) do
+    command = ["INCRBY", key, 1]
+    NodeManager.queue_command(key, command) 
+  end
 end

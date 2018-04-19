@@ -136,4 +136,25 @@ defmodule ElRedisTest do
     :timer.sleep(1000);
     assert msg = ":4\r\n"
   end
+
+  test "APPEND key value, sets key to value when key doesn't exist", state do
+    :ok = :gen_tcp.send(state[:socket], "*3\r\n$6\r\nAPPEND\r\n$18\r\nappend_key_value_1\r\n$5\r\nvalue\r\n")
+    {:ok, msg} = :gen_tcp.recv(state[:socket], 0)
+    assert msg = ":5\r\n"
+    :ok = :gen_tcp.send(state[:socket], "*2\r\n$3\r\nGET\r\n$18\r\nappend_key_value_1\r\n")
+    {:ok, msg} = :gen_tcp.recv(state[:socket], 0)
+    assert msg = "$5\r\nvalue\r\n" 
+  end
+
+  test "APPEND key value, adds value to key if key already exists", state do
+    :ok = :gen_tcp.send(state[:socket], "*3\r\n$3\r\nSET\r\n$18\r\nappend_key_value_2\r\n$5\r\nvalue\r\n")
+    {:ok, msg} = :gen_tcp.recv(state[:socket], 0)
+    assert msg = "+OK\r\n"
+    :ok = :gen_tcp.send(state[:socket], "*3\r\n$6\r\nAPPEND\r\n$18\r\nappend_key_value_2\r\n$5\r\nvalue\r\n")
+    {:ok, msg} = :gen_tcp.recv(state[:socket], 0)
+    assert msg = ":10\r\n"
+    :ok = :gen_tcp.send(state[:socket], "*2\r\n$3\r\nGET\r\n$18\r\nappend_key_value_2\r\n")
+    {:ok, msg} = :gen_tcp.recv(state[:socket], 0)
+    assert msg = "$10\r\nvaluevalue\r\n"
+  end
 end

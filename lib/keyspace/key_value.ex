@@ -24,6 +24,25 @@ defmodule ElRedis.KeyValue do
   @doc """
   Command Logic
   """
+  def command(key, ["APPEND", key, value] = command) do
+    if Registry.lookup(:key_registry, key) == [] do
+      KeySpaceSupervisor.add_node(key)
+      GenServer.call(via_tuple(key), ["SET", key, value])
+      String.length(value)
+    else
+      GenServer.call(via_tuple(key), command)
+    end
+  end
+
+  def command(key, ["INCRBY", key, value] = command) do
+    if Registry.lookup(:key_registry, key) == [] do
+      KeySpaceSupervisor.add_node(key)
+      number = GenServer.call(via_tuple(key), ["SET", key, "0"], 100000)
+      command(key, command)
+    else
+      GenServer.call(via_tuple(key), command)
+    end 
+  end
 
   def command(key, ["TTL", key] = command) do
     if Registry.lookup(:key_registry, key) == [] do
@@ -113,6 +132,27 @@ defmodule ElRedis.KeyValue do
     {:reply, response, state}
   end
 
+  def handle_call(["APPEND", key, new_value], _from, state) do
+    current_string = state[:string]
+    state = Map.put(state, :string, current_string <> new_value)
+    len = String.length(state[:string])
+    {:reply, len, state}
+  end
+
+  @doc """
+  Increases value by increment if value can be parse as a string
+  """
+  def handle_call(["INCRBY", key, increment], _from, state) do
+    current_string = state[:string]
+    case Integer.parse(current_string) do
+      {number, ""} when is_integer(number) ->
+        new_num = number + increment
+        state = Map.put(state, :string, Integer.to_string(new_num))
+        {:reply, new_num, state}
+      _ ->
+        {:reply, ["Error", "Err", "value is not an integer or out of range"], state}
+    end
+  end
   @doc """
   Returns 1 as reply since 1 key was deleted
   """
@@ -120,6 +160,9 @@ defmodule ElRedis.KeyValue do
     {:stop, :normal, @one,  state}
   end
 
+  @doc """
+  Called when a key expires
+  """
   def handle_info(["DEL", key], state) do
     {:stop, :normal, state}
   end
