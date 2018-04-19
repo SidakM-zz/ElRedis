@@ -11,7 +11,7 @@ defmodule ElRedis.KeyValue do
 
   def start_link([key]) do
     name = via_tuple(key)
-    GenServer.start_link(__MODULE__, nil, name: name)
+    GenServer.start_link(__MODULE__, %{}, name: name)
   end
 
   @doc """
@@ -42,8 +42,7 @@ defmodule ElRedis.KeyValue do
         KeySpaceSupervisor.add_node(key)
         command(key, command)
       [{pid, _}] ->
-        GenServer.call(pid, ["SET", key, value])
-        Process.send_after(pid, ["DEL", key], time * 1000)
+        GenServer.call(pid, ["SETEX", key, time, value])
     end
     @ok
   end
@@ -79,23 +78,32 @@ defmodule ElRedis.KeyValue do
     GenServer.call(via_tuple(key), command)
   end
 
-  def handle_call(["GET", key], _from, value) do
-    {:reply, [value], value}
+  def handle_call(["GET", key], _from, state) do
+    string = state[:string]
+    {:reply, [string], state}
   end
 
-  def handle_call(["SET", key, new_value], _from, value) do
-    {:reply, "OK", new_value}
+  def handle_call(["SET", key, new_value], _from, state) do
+    state = Map.put(state, :string, new_value)
+    {:reply, "OK", state}
+  end
+
+  def handle_call(["SETEX", key, time, new_value], _from, state) do
+    state = Map.put(state, :string, new_value)
+    timer = Process.send_after(self(), ["DEL", key], time * 1000)
+    state = Map.put(state, :timer, timer)
+    {:reply, "OK", state}
   end
 
   @doc """
   Returns 1 as reply since 1 key was deleted
   """
-  def handle_call(["DEL", key], _from, value) do
-    {:stop, :normal, @one,  value}
+  def handle_call(["DEL", key], _from, state) do
+    {:stop, :normal, @one,  state}
   end
 
-  def handle_info(["DEL", key], value) do
-    {:stop, :normal, value}
+  def handle_info(["DEL", key], state) do
+    {:stop, :normal, state}
   end
 
 end
