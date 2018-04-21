@@ -21,7 +21,7 @@ defmodule ElRedis.Handler do
   """
   def init(ref, socket, transport, _opts) do
     client = get_client(socket)
-    Logger.info("#{client} connecting")
+    # Logger.info("#{client} connecting")
     :ok = :ranch.accept_ack(ref)
     :ok = transport.setopts(socket, [{:active, true}])
 
@@ -34,7 +34,7 @@ defmodule ElRedis.Handler do
 
   # Message CallBacks When Transport/:gen_tcp is in Active Mode
   def handle_info({:tcp_error, _, reason}, %{client: client} = state) do
-    Logger.info("Error with peer #{client}: #{inspect(reason)}")
+    # Logger.info("Error with peer #{client}: #{inspect(reason)}")
 
     {:stop, :normal, state}
   end
@@ -43,7 +43,7 @@ defmodule ElRedis.Handler do
         {:tcp, _, message},
         %{socket: socket, transport: transport, client: client} = state
       ) do
-    Logger.info("Received new message: #{inspect(message)} from #{client}")
+    # Logger.info("Received new message: #{inspect(message)} from #{client}")
     # Reply
     # require IEx
     # IEx.pry
@@ -56,7 +56,7 @@ defmodule ElRedis.Handler do
   end
 
   def handle_info({:tcp_closed, _}, %{client: client} = state) do
-    Logger.info("#{client} disconnected")
+    # Logger.info("#{client} disconnected")
 
     {:stop, :normal, state}
   end
