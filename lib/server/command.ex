@@ -45,4 +45,15 @@ defmodule ElRedis.Command do
     command = ["INCRBY", key, 1]
     NodeManager.queue_command(key, command) 
   end
+
+  def handle_command(["DECRBY", key, value] = command) do
+    value = String.to_integer(value)
+    command = ["DECRBY", key, value]
+    NodeManager.queue_command(key, command) 
+  end
+
+  def handle_command(["DECR", key] = command) do
+    command = ["DECRBY", key, 1]
+    NodeManager.queue_command(key, command) 
+  end
 end

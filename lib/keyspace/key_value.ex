@@ -44,6 +44,16 @@ defmodule ElRedis.KeyValue do
     end 
   end
 
+  def command(key, ["DECRBY", key, value] = command) do
+    if Registry.lookup(:key_registry, key) == [] do
+      KeySpaceSupervisor.add_node(key)
+      number = GenServer.call(via_tuple(key), ["SET", key, "0"], 100000)
+      command(key, command)
+    else
+      GenServer.call(via_tuple(key), command)
+    end 
+  end
+
   def command(key, ["TTL", key] = command) do
     if Registry.lookup(:key_registry, key) == [] do
       response = -2
@@ -105,6 +115,9 @@ defmodule ElRedis.KeyValue do
     GenServer.call(via_tuple(key), command)
   end
 
+  @doc """
+  State Manipulating logic
+  """
   def handle_call(["GET", key], _from, state) do
     string = state[:string]
     {:reply, [string], state}
@@ -153,6 +166,22 @@ defmodule ElRedis.KeyValue do
         {:reply, ["Error", "Err", "value is not an integer or out of range"], state}
     end
   end
+
+  @doc """
+  Decreases value by decrement if value can be parse as a string
+  """
+  def handle_call(["DECRBY", key, decrement], _from, state) do
+    current_string = state[:string]
+    case Integer.parse(current_string) do
+      {number, ""} when is_integer(number) ->
+        new_num = number - decrement
+        state = Map.put(state, :string, Integer.to_string(new_num))
+        {:reply, new_num, state}
+      _ ->
+        {:reply, ["Error", "Err", "value is not an integer or out of range"], state}
+    end
+  end
+
   @doc """
   Returns 1 as reply since 1 key was deleted
   """
