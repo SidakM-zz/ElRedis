@@ -37,7 +37,7 @@ defmodule ElRedis.KeyValue do
   def command(key, ["INCRBY", key, value] = command) do
     if Registry.lookup(:key_registry, key) == [] do
       KeySpaceSupervisor.add_node(key)
-      number = GenServer.call(via_tuple(key), ["SET", key, "0"], 100000)
+      number = GenServer.call(via_tuple(key), ["SET", key, "0"])
       command(key, command)
     else
       GenServer.call(via_tuple(key), command)
@@ -47,8 +47,16 @@ defmodule ElRedis.KeyValue do
   def command(key, ["DECRBY", key, value] = command) do
     if Registry.lookup(:key_registry, key) == [] do
       KeySpaceSupervisor.add_node(key)
-      number = GenServer.call(via_tuple(key), ["SET", key, "0"], 100000)
+      number = GenServer.call(via_tuple(key), ["SET", key, "0"])
       command(key, command)
+    else
+      GenServer.call(via_tuple(key), command)
+    end 
+  end
+
+  def command(key, ["STRLEN", key] = command) do
+    if Registry.lookup(:key_registry, key) == [] do
+      @zero
     else
       GenServer.call(via_tuple(key), command)
     end 
@@ -145,6 +153,9 @@ defmodule ElRedis.KeyValue do
     {:reply, response, state}
   end
 
+  @doc """
+  Appends value to end of current_value
+  """
   def handle_call(["APPEND", key, new_value], _from, state) do
     current_string = state[:string]
     state = Map.put(state, :string, current_string <> new_value)
@@ -180,6 +191,15 @@ defmodule ElRedis.KeyValue do
       _ ->
         {:reply, ["Error", "Err", "value is not an integer or out of range"], state}
     end
+  end
+
+  @doc """
+  Returns length of string given key
+  """
+  def handle_call(["STRLEN", key], _from, state) do
+    current_string = state[:string]
+    len = String.length(current_string)
+    {:reply, len, state}
   end
 
   @doc """

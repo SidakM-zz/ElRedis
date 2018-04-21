@@ -56,4 +56,8 @@ defmodule ElRedis.Command do
     command = ["DECRBY", key, 1]
     NodeManager.queue_command(key, command) 
   end
+
+  def handle_command(["STRLEN", key] = command) do
+    NodeManager.queue_command(key, command) 
+  end
 end
