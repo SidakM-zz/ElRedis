@@ -157,4 +157,41 @@ defmodule ElRedisTest do
     {:ok, msg} = :gen_tcp.recv(state[:socket], 0)
     assert msg = "$10\r\nvaluevalue\r\n"
   end
+
+  test "INCRBY key value, creates and sets key to value if key does not exist", state do
+    :ok = :gen_tcp.send(state[:socket], "*3\r\n$6\r\nINCRBY\r\n$12\r\nincrby_key_1\r\n$1\r\n3\r\n")
+    {:ok, msg} = :gen_tcp.recv(state[:socket], 0)
+    assert msg = ":3\r\n"
+    :ok = :gen_tcp.send(state[:socket], "*2\r\n$3\r\nGET\r\n$12\r\nincrby_key_1\r\n")
+    {:ok, msg} = :gen_tcp.recv(state[:socket], 0)
+    assert msg = "$1\r\n3\r\n"
+  end
+
+  test "INCRBY key value, increase key's value by value if key already existed", state do
+    :ok = :gen_tcp.send(state[:socket], "*3\r\n$3\r\nSET\r\n$12\r\nincrby_key_2\r\n$1\r\n2\r\n")
+    {:ok, msg} = :gen_tcp.recv(state[:socket], 0)
+    assert msg = "+OK\r\n"
+    :ok = :gen_tcp.send(state[:socket], "*3\r\n$6\r\nINCRBY\r\n$12\r\nincrby_key_2\r\n$1\r\n3\r\n")
+    {:ok, msg} = :gen_tcp.recv(state[:socket], 0)
+    assert msg = ":5\r\n"
+  end
+
+  test "INCR key, creates and sets key to 1 if key does not exist", state do
+    :ok = :gen_tcp.send(state[:socket], "*2\r\n$4\r\nINCR\r\n$10\r\nincr_key_1\r\n")
+    {:ok, msg} = :gen_tcp.recv(state[:socket], 0)
+    assert msg = ":1\r\n"
+    :ok = :gen_tcp.send(state[:socket], "*2\r\n$3\r\nGET\r\n$10\r\nincr_key_1\r\n")
+    {:ok, msg} = :gen_tcp.recv(state[:socket], 0)
+    assert msg = "$1\r\n1\r\n"
+  end
+
+  test "INCR key, increase key's value by 1 if key already existed", state do
+    :ok = :gen_tcp.send(state[:socket], "*3\r\n$3\r\nSET\r\n$10\r\nincr_key_2\r\n$1\r\n2\r\n")
+    {:ok, msg} = :gen_tcp.recv(state[:socket], 0)
+    assert msg = "+OK\r\n"
+    :ok = :gen_tcp.send(state[:socket], "*2\r\n$4\r\nINCR\r\n$10\r\nincr_key_2\r\n")
+    {:ok, msg} = :gen_tcp.recv(state[:socket], 0)
+    assert msg = ":3\r\n"
+  end
+
 end
